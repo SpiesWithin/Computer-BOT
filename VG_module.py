@@ -63,7 +63,7 @@ def getPlayerInfoVG(ID, givenname=False, server="na"):
     return info
 
 # Get a PLAYERS performance from RANGE of DAYS with the players NAME
-def getPlayerPerformanceVG(name, days=7, type=0):
+def getPlayerPerformanceVG(name, days=7, type=0,region="na"):
     name = str(name)  # Convert NAME to STRING to prevent errors
     days = int(days)  # Convert DAYS to INT to prevent errors
 
@@ -73,7 +73,7 @@ def getPlayerPerformanceVG(name, days=7, type=0):
     datenow = str(datetime.date.today()) + "T00:00:00Z"  # CURRENT DATE
 
     try:
-        matches = apiVG.matches({"filter[createdAt-start]": daterange, "page[limit]": 50, "filter[playerNames]": name})  # GET MATCHES
+        matches = apiVG.matches({"filter[createdAt-start]": daterange, "page[limit]": 50, "filter[playerNames]": name},region=region)  # GET MATCHES
 
     except:
         return "Couldn't get any matches for **" + name + "** from the past " + str(days) + " days!"  # RETURN if player MATCHES AREN'T FOUND
@@ -300,12 +300,13 @@ class Vg():
         self.bot = bot
 
     @commands.command()
-    async def vgperformance(self, player_name="", days=7):
+    async def vgperformance(self, player_name="",region="na" ,days=7):
         """Gets a players performance in the past days.
 
                 >vgperformance (player_name) (days)
             player_name   ~   name of player to search for
             days          ~   day range to search from
+            region        ~   region of the player
 
         """
 
@@ -339,7 +340,7 @@ class Vg():
             return
 
         msg = await self.bot.say(notice)  # NOTICE USER that THEIR COMMAND is being PROCESSED
-        await self.bot.edit_message(msg, str(getPlayerPerformanceVG(player_name, days)))  # RUNS PERFORMANCE FETCH and UPDATES MESSAGE once DONE
+        await self.bot.edit_message(msg, str(getPlayerPerformanceVG(player_name, days,region = region)))  # RUNS PERFORMANCE FETCH and UPDATES MESSAGE once DONE
 
     @commands.command()
     async def vgcheckplayer(self, player_name=""):
