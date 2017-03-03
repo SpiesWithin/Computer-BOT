@@ -4,61 +4,14 @@
 # IMPORTS
 import gamelocker
 import datetime
+import discord
+from discord.ext import commands
 import TOOL_module as tools
 
-# VG Variables-- Use #1 = , Use #2 = Object Oriented
+# VG Variables--
 keyVG = ""  # VG_API_TOKEN_HERE
-apiVG = gamelocker.Gamelocker(keyVG).Vainglory()  # Use #1
+apiVG = gamelocker.Gamelocker(keyVG).Vainglory()  # API OBJECT
 
-
-# Will get the COMMAND given and EXECUTE the according FUNCTION
-async def commandVG(client, message, something):
-    COMMAND =  message.content.split()  # SPLIT up the MESSAGE to form the COMMAND
-
-    # Check the SIZE of the COMMAND to narrow down the POSSIBILITIES
-    if len(COMMAND) == 1:  # 1 PIECE to the COMMAND in other words just >VG
-        await client.send_message(message.channel, "**>VG** ~ *Command used in a model for Computer Bot.*"
-        "\n**>VG help** ~ *for a list of VG commands*")
-
-    elif len(COMMAND) == 2:  # 2 PIECES to the COMMAND
-        if str(COMMAND[1]) == "help":  # >VG help
-            await client.send_message(message.channel, "**(R) = required input - (O) = optional input**\n**>VG** ~ Command used in a model for Computer Bot. "
-        "\n**>VG help** ~ *for a list of commands*\n**>VG player NAME** ~ *Check if IGN is in VG database! ~ NAME - (R)In game name ~*\n**>VG performance NAME DAYS** ~ *Check match performance in a range of days ~ NAME - (R)In game name, DAYS - (O)Day range ~*")  # SEND MSG
-
-        else:  # COMMAND is ILLEGAL for not being VALID
-            await client.send_message(message.channel, "That isn't a command for **>VG**!\n**>VG** ~ *for a list of VG commands*")  # SEND MSG
-
-    elif len(COMMAND) == 3:  # 3 PIECES to the COMMAND
-        if str(COMMAND[1]) == "player":  # >VG player
-            await client.send_message(message.channel, getIDVG(COMMAND[2]))  # PROCESS DATA RETURN and MSG
-
-        elif str(COMMAND[1]) == "performance":  # >VG performance NAME
-            msg = await client.send_message(message.channel, "Looking at " + COMMAND[2] + " match history from the past 7 days... :eyes:")  # Send MSG saying DATA is being PROCESSED
-            await client.edit_message(msg, getPlayerPerformanceVG(COMMAND[2]))  # PROCESS DATA RETURN and REPLACE MSG
-
-        else:  # COMMAND is ILLEGAL for not being VALID
-            await client.send_message(message.channel, "That isn't a command for **>VG**!\n**>VG** ~ *for a list of VG commands*")
-
-    elif len(COMMAND) == 4:  # 4 PIECES to the COMMAND
-
-        if str(COMMAND[1]) == "performance":  # >VG performance NAME DAYS
-
-            if tools.isIntTOOL(COMMAND[3]) == True:
-                days = int(COMMAND[3])
-                if days > 93:  # If DAYS is ILLEGAL for being to BIG set 93
-                    days = 93
-
-                if days <= 0:  # If DAYS is ILLEGAL for being to SMALL set 1
-                    days = 1
-
-                msg = await client.send_message(message.channel, "Looking at " + COMMAND[2] + " match history from the past " + str(days) + " days... :eyes:")  # Send MSG saying DATA is being PROCESSED
-                await client.edit_message(msg, getPlayerPerformanceVG(COMMAND[2], days))  # PROCESS DATA RETURN and REPLACE MSG
-
-            else:  # COMMAND is ILLEGAL for not being VALID
-                await client.send_message(message.channel, "**" + str(COMMAND[3]) + "** *isn't a valid date span!*")  # SEND MSG
-
-    else:  # COMMAND is ILLEGAL for not being VALID
-        await client.send_message(message.channel, "That isn't a command for **>VG**!\n**>VG** ~ *for a list of VG commands*")  # SEND MSG
 
 # Will CHECK if NAME is VALID. Will RETURNS True or False if TYPE = 0, if TYPE = 1 returns ID or False.
 def getIDVG(name, type=0):
@@ -333,3 +286,86 @@ def giveHeroNameVG(ID):
 
     else:
         return "Unknown Hero"
+
+
+# CLASS containing ALL COMMANDS for THIS MODULE
+class Vg():
+    """All the commands in relation to Vainglory.
+
+            Made with love and some Vainglory api, python - gamelocker.
+
+    """
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command()
+    async def vgperformance(self, player_name="", days=7):
+        """Gets a players performance in the past days.
+
+                >vgperformance (player_name) (days)
+            player_name   ~   name of player to search for
+            days          ~   day range to search from
+
+        """
+
+        if player_name == "":  # MESSAGE the USER if NO NAME was GIVEN
+            await self.bot.say("You need to give a players name at least...")
+            return
+
+        if len(str(player_name)) < 3:  # MESSAGE the USER if NAME GIVEN is TOO SHORT
+            await self.bot.say("That isn't a valid name... :sweat_smile:")
+            return
+
+        if tools.isIntTOOL(player_name) == True:  # MESSAGE the USER if a NUMBER was GIVEN
+            await self.bot.say(str(player_name) + " isn't a valid name... :sweat_smile:")
+            return
+
+        notice = "Looking for match results for " + str(player_name) + " from the past " + str(days) + " days... :eyes:"
+
+        if tools.isIntTOOL(days) == True and days != "":  # CHECK DAYS to be a VALID NUMBER
+            days = int(days)
+
+            if days > 93:
+                notice += "\nDates down from " + str(days) + " to 93 days!"  # ADD to NOTICE that DATE was CHANGED
+                days = 93  # MAKE DAYS a VALID RANGE
+
+            elif days <= 0:
+                notice += "\nDates up from " + str(days) + " to 1 day!"  # ADD to NOTICE that DATE was CHANGED
+                days = 1  # MAKE DAYS a VALID RANGE
+
+        if tools.isIntTOOL(days) == False and days != "":
+            await self.bot.say("Sorry but " + str(days) + " isn't a valid number... :sweat_smile:")  # If DAYS is an INVALID number TELL USER
+            return
+
+        msg = await self.bot.say(notice)  # NOTICE USER that THEIR COMMAND is being PROCESSED
+        await self.bot.edit_message(msg, str(getPlayerPerformanceVG(player_name, days)))  # RUNS PERFORMANCE FETCH and UPDATES MESSAGE once DONE
+
+    @commands.command()
+    async def vgcheckplayer(self, player_name=""):
+        """Checks if player exist in vainglory.
+
+                >vgcheckplayer (player_name)
+            player_name   ~   name of player to check for
+
+        """
+
+        if player_name == "":
+            await self.bot.say("You need to give a players name... :sweat_smile:")
+            return
+
+        elif tools.isIntTOOL(player_name) == False:
+            player_name = str(player_name)  # Convert PLAYER_NAME to STRING to prevent errors
+
+            notice = "Looking for " + player_name + "... :eyes:"  # DEFAULT NOTICE SENT to USER!
+
+            msg = await self.bot.say(notice)  # NOTICE USER that THEIR COMMAND is being PROCESSED
+            await self.bot.edit_message(msg, str(getIDVG(player_name)))  # RUNS ID TEST
+
+        else:
+            await self.bot.say("Sorry but " + str(player_name) + " isn't a valid name... :sweat_smile:")
+            return
+
+
+def setup(bot):
+    bot.add_cog(Vg(bot))
